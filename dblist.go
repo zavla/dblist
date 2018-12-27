@@ -1,4 +1,14 @@
-// Package dblist manages databases files names and paths
+// Package dblist manages databases files names list.
+// Reads actual files from specified paths.
+// Selects last files in its group for every database.
+// Supposed to be used by other packages that manage backup files:
+//   DeleteArchivedBackups, BackupsControl
+// Uses config file:
+// Example of config file:
+// [{"path":"g:/ShebB", "Filename":"buh_log8", "Days":1},
+// {"path":"g:/ShebB", "Filename":"buh_log3", "Days":1},
+// {"path":"g:/ShebB", "Filename":"buh_prom8", "Days":1},
+// ]
 package dblist
 
 import (
