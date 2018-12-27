@@ -120,7 +120,7 @@ func GroupFunc(source string) (groupname, groupsuffux string) {
 	pos := -1
 	for _, sub := range suffix {
 
-		pos := strings.LastIndex(source, sub)
+		pos = strings.LastIndex(source, sub)
 		if pos != -1 {
 			break
 		}
@@ -133,15 +133,7 @@ func GroupFunc(source string) (groupname, groupsuffux string) {
 
 // GetLastFilesGroupedByFunc select last file in the group
 func GetLastFilesGroupedByFunc(slice []FileInfoWin, groupFunc func(string) (string, string)) (ret []FileInfoWin) {
-	// sort.Slice(slice, func(i, j int) bool {
-	// 	n1, n2 := groupFunc(slice[i].Name())
-	// 	n3, n4 := groupFunc(slice[j].Name())
-	// 	if n1+n2 > n3+n4 { //DESC by group
-	// 		return true
-	// 	}
-	// 	return false
-	// })
-	// previouse and next stable sort   or special less func
+	// two sorts (usual and stable)    or one sort with special less func
 	sort.Slice(slice, func(i, j int) bool {
 		n1, n2 := groupFunc(slice[i].Name())
 		n3, n4 := groupFunc(slice[j].Name())

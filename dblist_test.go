@@ -45,61 +45,61 @@ func TestGetLastFilesGroupedByFunc(t *testing.T) {
 	}{
 		//TODO: Add test cases.
 
-		// {name: "one",
-		// 	args: args{
-		// 		slice: []FileInfoWin{
-		// 			{FileInfo: substFI{"ubcd_sklad_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
-		// 		},
-		// 		groupFunc: GroupFunc,
-		// 	},
-		// 	wantRet: []FileInfoWin{
-		// 		{FileInfo: substFI{"ubcd_sklad_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
-		// 	},
-		// },
-		// {name: "two",
-		// 	args: args{
-		// 		slice: []FileInfoWin{
-		// 			{FileInfo: substFI{"A_logfile.txt"}, WinAttr: 0x20},
-		// 			{FileInfo: substFI{"ubcd_sklad_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
-		// 		},
-		// 		groupFunc: GroupFunc,
-		// 	},
-		// 	wantRet: []FileInfoWin{
-		// 		{FileInfo: substFI{"ubcd_sklad_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
-		// 		{FileInfo: substFI{"A_logfile.txt"}, WinAttr: 0x20},
-		// 	},
-		// },
-		// {name: "three",
-		// 	args: args{
-		// 		slice: []FileInfoWin{
-		// 			{FileInfo: substFI{"A_logfile.txt"}, WinAttr: 0x20},
-		// 			{FileInfo: substFI{"ubcd_sklad_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
-		// 			{FileInfo: substFI{"ubcd_sklad_2010_2018-11-12-FULL.bak"}, WinAttr: 0x20},
-		// 		},
-		// 		groupFunc: GroupFunc,
-		// 	},
-		// 	wantRet: []FileInfoWin{
-		// 		{FileInfo: substFI{"ubcd_sklad_2010_2018-11-12-FULL.bak"}, WinAttr: 0x20},
-		// 		{FileInfo: substFI{"A_logfile.txt"}, WinAttr: 0x20},
-		// 	},
-		// },
-		// {name: "four",
-		// 	args: args{
-		// 		slice: []FileInfoWin{
-		// 			{FileInfo: substFI{"A_logfile.txt"}, WinAttr: 0x20},
-		// 			{FileInfo: substFI{"ubcd_sklad_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
-		// 			{FileInfo: substFI{"ubcd_sklad_2010_2018-11-12-FULL.bak"}, WinAttr: 0x20},
-		// 			{FileInfo: substFI{"ubcd_sklad_2010_2018-11-10-differ.dif"}, WinAttr: 0x20},
-		// 			{FileInfo: substFI{"ubcd_sklad_2010_2018-11-13-differ.dif"}, WinAttr: 0x20},
-		// 		},
-		// 		groupFunc: GroupFunc,
-		// 	},
-		// 	wantRet: []FileInfoWin{
-		// 		{FileInfo: substFI{"ubcd_sklad_2010_2018-11-13-differ.dif"}, WinAttr: 0x20},
-		// 		{FileInfo: substFI{"ubcd_sklad_2010_2018-11-12-FULL.bak"}, WinAttr: 0x20},
-		// 		{FileInfo: substFI{"A_logfile.txt"}, WinAttr: 0x20},
-		// 	},
-		// },
+		{name: "one",
+			args: args{
+				slice: []FileInfoWin{
+					{FileInfo: substFI{"ubcd_sklad_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
+				},
+				groupFunc: GroupFunc,
+			},
+			wantRet: []FileInfoWin{
+				{FileInfo: substFI{"ubcd_sklad_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
+			},
+		},
+		{name: "two",
+			args: args{
+				slice: []FileInfoWin{
+					{FileInfo: substFI{"A_logfile.txt"}, WinAttr: 0x20},
+					{FileInfo: substFI{"ubcd_sklad_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
+				},
+				groupFunc: GroupFunc,
+			},
+			wantRet: []FileInfoWin{
+				{FileInfo: substFI{"ubcd_sklad_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
+				{FileInfo: substFI{"A_logfile.txt"}, WinAttr: 0x20},
+			},
+		},
+		{name: "three",
+			args: args{
+				slice: []FileInfoWin{
+					{FileInfo: substFI{"A_logfile.txt"}, WinAttr: 0x20},
+					{FileInfo: substFI{"ubcd_sklad_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
+					{FileInfo: substFI{"ubcd_sklad_2010_2018-11-12-FULL.bak"}, WinAttr: 0x20},
+				},
+				groupFunc: GroupFunc,
+			},
+			wantRet: []FileInfoWin{
+				{FileInfo: substFI{"ubcd_sklad_2010_2018-11-12-FULL.bak"}, WinAttr: 0x20},
+				{FileInfo: substFI{"A_logfile.txt"}, WinAttr: 0x20},
+			},
+		},
+		{name: "four",
+			args: args{
+				slice: []FileInfoWin{
+					{FileInfo: substFI{"A_logfile.txt"}, WinAttr: 0x20},
+					{FileInfo: substFI{"ubcd_sklad_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
+					{FileInfo: substFI{"ubcd_sklad_2010_2018-11-12-FULL.bak"}, WinAttr: 0x20},
+					{FileInfo: substFI{"ubcd_sklad_2010_2018-11-10-differ.dif"}, WinAttr: 0x20},
+					{FileInfo: substFI{"ubcd_sklad_2010_2018-11-13-differ.dif"}, WinAttr: 0x20},
+				},
+				groupFunc: GroupFunc,
+			},
+			wantRet: []FileInfoWin{
+				{FileInfo: substFI{"ubcd_sklad_2010_2018-11-13-differ.dif"}, WinAttr: 0x20},
+				{FileInfo: substFI{"ubcd_sklad_2010_2018-11-12-FULL.bak"}, WinAttr: 0x20},
+				{FileInfo: substFI{"A_logfile.txt"}, WinAttr: 0x20},
+			},
+		},
 		{name: "five",
 			args: args{
 				slice: []FileInfoWin{
