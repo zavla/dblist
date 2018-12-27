@@ -76,7 +76,7 @@ func GetUniquePaths(configstruct []ConfigLine) map[string]int {
 // ExtractGroupName gets database name from filename
 func ExtractGroupName(s string) string {
 	// all filenames are in the form dbnamehere_2018-10-08T08-00-00-497-FULL.bak
-	// if strings.HasPrefix(s, "ubcd_sklad_2010") {
+	// if strings.HasPrefix(s, "ubd_sklad_2010") {
 	// 	fmt.Print(s)
 	// }
 	year := time.Now().Year()
@@ -88,6 +88,9 @@ func ExtractGroupName(s string) string {
 }
 
 // ReadFilesFromPaths fills map of filenames in specified folders
+// Filenames should be in form:
+// databasename_YYYY-MM-DD-*
+// Other files considered not a database backups and will not be deleted.
 func ReadFilesFromPaths(uniqueconfigpaths map[string]int) map[string][]FileInfoWin {
 
 	retmap := make(map[string][]FileInfoWin)
@@ -99,6 +102,9 @@ func ReadFilesFromPaths(uniqueconfigpaths map[string]int) map[string][]FileInfoW
 
 		retmap[k] = make([]FileInfoWin, 0, len(filesinfo))
 		for _, v := range filesinfo {
+			if ExtractGroupName(v.Name()) == "" {
+				continue
+			}
 			// adds windows attributes to instance of special type FileInfoWin
 			fullFilename := filepath.Join(k, v.Name())
 			uint16ptr, _ := windows.UTF16PtrFromString(fullFilename)
