@@ -1,4 +1,4 @@
-// Package dblist manages databases files names list.
+// Package dblist helps to manage databases files names list.
 // Reads actual files from specified paths.
 // Selects last files in its group for every database.
 // Supposed to be used by other packages that manage backup files:
@@ -44,11 +44,11 @@ type FileInfoWin struct {
 func ReadConfig(filename string) []ConfigLine {
 	f, err := os.Open(filename)
 	if err != nil {
-		log.Fatalf("%s", err)
+		log.Fatalf("%s\n", err)
 	}
 	b, err := ioutil.ReadAll(f)
 	if err != nil {
-		log.Fatalf("%s", err)
+		log.Fatalf("%s\n", err)
 	}
 	if b[0] == 0xEF || b[0] == 0xBB || b[1] == 0xBB {
 		b = b[3:] //skip BOM
@@ -57,7 +57,7 @@ func ReadConfig(filename string) []ConfigLine {
 	var datastruct []ConfigLine
 	err = json.Unmarshal(b, &datastruct)
 	if err != nil {
-		log.Fatalf("Zaerror: json structure bad.\n%s", err)
+		log.Fatalf("json structure is wrong:\n%s\n", err)
 	}
 	return datastruct
 }
@@ -94,7 +94,7 @@ func ReadFilesFromPaths(uniqueconfigpaths map[string]int) map[string][]FileInfoW
 	for k := range uniqueconfigpaths {
 		filesinfo, err := ioutil.ReadDir(k)
 		if err != nil {
-			log.Fatalf("%s", err)
+			log.Fatalf("%s\n", err)
 		}
 
 		retmap[k] = make([]FileInfoWin, 0, len(filesinfo))
@@ -104,7 +104,7 @@ func ReadFilesFromPaths(uniqueconfigpaths map[string]int) map[string][]FileInfoW
 			uint16ptr, _ := windows.UTF16PtrFromString(fullFilename)
 			WinAttr, err := windows.GetFileAttributes(uint16ptr)
 			if err != nil {
-				log.Fatalf("%s", err)
+				log.Fatalf("%s\n", err)
 			}
 
 			retmap[k] = append(retmap[k], FileInfoWin{FileInfo: v, WinAttr: WinAttr})
