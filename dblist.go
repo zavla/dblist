@@ -1,8 +1,10 @@
-// Package dblist helps to manage databases files names list.
+// Package dblist helps to manage databases files names list. Selects last files, extracts group name from filename etc.
+// *****************
+// * outdated version, please use /v2 version. (see subdirectory /v2)
+// *****************
 // Reads actual files from specified paths.
 // Selects last files in its group for every database.
-// Supposed to be used by other packages that manage backup files:
-//   DeleteArchivedBackups, BackupsControl
+// Supposed to be used by other packages that manage backup files: DeleteArchivedBackups, BackupsControl.
 // Uses config file:
 // Example of config file:
 // [{"path":"g:/ShebB", "Filename":"buh_log8", "Days":1},
@@ -76,9 +78,6 @@ func GetUniquePaths(configstruct []ConfigLine) map[string]int {
 // ExtractGroupName gets database name from filename
 func ExtractGroupName(s string) string {
 	// all filenames are in the form dbnamehere_2018-10-08T08-00-00-497-FULL.bak
-	// if strings.HasPrefix(s, "ubd_sklad_2010") {
-	// 	fmt.Print(s)
-	// }
 	year := time.Now().Year()
 	pos := strings.Index(s, "_"+strconv.Itoa(year))
 	if pos == -1 {
@@ -88,9 +87,9 @@ func ExtractGroupName(s string) string {
 }
 
 // ReadFilesFromPaths fills map of filenames in specified folders
-// Filenames should be in form:
+// all filenames are in the form dbnamehere_2018-10-08T08-00-00-497-FULL.bak
 // databasename_YYYY-MM-DD-*
-// Other files considered not a database backups and will not be deleted.
+// Other files considered not a database backups.
 func ReadFilesFromPaths(uniqueconfigpaths map[string]int) map[string][]FileInfoWin {
 
 	retmap := make(map[string][]FileInfoWin)
@@ -121,12 +120,11 @@ func ReadFilesFromPaths(uniqueconfigpaths map[string]int) map[string][]FileInfoW
 
 // GroupFunc used in func GetLastFilesGroupedByFunc and extracts group columns from filename string
 // works with three different filenames tamplates
-// ubd_sklad_2010_2018-11-12-FULL.bak
-// ЧАО_Пром-1c77dir_2018-12-25T21-00-01.7z
-// ubd_sklad_2010_2018-11-13-differ.dif
+// ubd_store2011_2018-11-12-FULL.bak
+// ubd_store2011_2018-11-13-differ.dif
 // ^-------------^          ^----------^
 // grouppart1               grouppart2
-// group consists of databasename and a suffix -FULL of -differ
+// A group consists of databasename and a suffix -FULL of -differ
 func GroupFunc(source string) (groupname, groupsuffux string) {
 	groupname = ExtractGroupName(source)
 	if groupname == "" {
