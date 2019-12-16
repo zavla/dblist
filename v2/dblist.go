@@ -1,7 +1,7 @@
 // Package dblist helps to manage groups of databases files names list. Selects last (newest) backup files, extracts group name from filename etc.
 // Selects last files in its group for every database.
 // Supposed to be used by other packages that manage backup files: DeleteArchivedBackups, BackupsControl.
-// Module mode. Should be imported with: import 	"github.com/zavla/dblist/v2" 
+// Module mode. Should be imported with: import 	"github.com/zavla/dblist/v2"
 // Uses config file:
 // Example of config file:
 // [{"path":"g:/ShebB", "Filename":"buh_log8", "Days":1},
@@ -51,8 +51,11 @@ type FileInfoWin struct {
 	WinAttr uint32
 }
 
+// GrouppingFunc is a type of function that extracts database name from filename.
+type GrouppingFunc func(string, []string) (string, string)
+
 // ReadConfig reads json config file.
-// Do not sort lines.
+// ReadConfig doesn't sort config lines. User expected to sort line by himself.
 func ReadConfig(filename string) (datastruct []ConfigLine, err error) {
 
 	f, err := os.Open(filename)
@@ -136,7 +139,7 @@ func BytesInRunes(s string, countrunes int) int {
 // Ror example _YYYY-MM pattern.
 // Returns index of the first _byte_ of string.
 // Does not convert to []rune.
-// example of pattern := []string{
+// example of _YYYY-MM pattern := []string{
 //	"_",
 // 	"0123456789",
 // 	"0123456789",
@@ -161,7 +164,7 @@ func Findpattern(s string, pattern []string) (ret int) {
 
 				if strings.IndexAny(s[pos+skipbytes:pos+skipbytes+thisrunebytes], v) == -1 {
 					// found wrong start of pattern
-					newpos := strings.IndexAny(s[pos+firstrunebytes:], pattern[0]) // again finds first char of pattern 
+					newpos := strings.IndexAny(s[pos+firstrunebytes:], pattern[0]) // again finds first char of pattern
 					if newpos != -1 {
 						pos += newpos + firstrunebytes
 						goto nextposiblepos
@@ -212,17 +215,17 @@ func ReadFilesFromPaths(uniquefolders map[string]int) map[string][]FileInfoWin {
 // GroupFunc extracts grouping columns from filename.
 // Used in func GetLastFilesGroupedByFunc.
 // Filenames examples:
-// ubd_store2011_2018-11-12-FULL.bak
-// ubd_sstore2011_2018-11-13-differ.dif
-// ^-------------^          ^----------^
-// groupbythis        and   groupbythis(suffix)
+// ubd_store_2018-11-12-FULL.bak
+// ubd_sstore_2018-11-13-differ.dif
+// ^---------^          ^----------^
+// groupsbythis        and   groupsbythis
 // Filenames devided in groups by databasename and a suffix (ex. -FULL.bak of -differ.bak).
-// Params: 
+// Params:
 // source is a filename;
 // suffix is a slice of possible filename endings;
 // Returns: extracted dbname and suffix.
 func GroupFunc(source string, suffix []string) (groupname, groupsuffix string) {
-	
+
 	groupname = ExtractDBName(source)
 	if groupname == "" {
 		return "", "" // not a database file name
@@ -243,13 +246,14 @@ func GroupFunc(source string, suffix []string) (groupname, groupsuffix string) {
 }
 
 // GetLastFilesGroupedByFunc selects the last (newest) backup file in a file group.
-// groupFunc decides to what group a filename belongs.
-func GetLastFilesGroupedByFunc(slice []FileInfoWin, groupFunc func(string, []string) (string, string), suffixes []string) (ret []FileInfoWin) {
+// User supplied groupFunc must decide to what group a filename belongs.
+// One may use convenience func GroupFunc in this package to cope with database backup files.
+func GetLastFilesGroupedByFunc(slice []FileInfoWin, groupFunc GrouppingFunc, possiblesuffixes []string, keepLastNcopies uint) (ret []FileInfoWin) {
 	// one sort with special less func. Sorts filenames descending. Helps to select the newest filename.
 	sort.Slice(slice, func(i, j int) bool {
-		// sorts descending, the first line of the group is oldest file
-		n1, n2 := groupFunc(slice[i].Name(), suffixes)
-		n3, n4 := groupFunc(slice[j].Name(), suffixes)
+		// sorts descending, so the first line in the group is the oldest file
+		n1, n2 := groupFunc(slice[i].Name(), possiblesuffixes)
+		n3, n4 := groupFunc(slice[j].Name(), possiblesuffixes)
 		if n1+n2 > n3+n4 { //DESCending by group
 			return true
 		}
@@ -266,23 +270,60 @@ func GetLastFilesGroupedByFunc(slice []FileInfoWin, groupFunc func(string, []str
 		return []FileInfoWin{} // empty return
 	}
 
-	n1, n2 := groupFunc(slice[0].Name(), suffixes)
-	prevGroup := n1 + n2 + "notequal" // for the first line to be the beginning of the group
-
-	for _, finf := range slice { // the slice is sorted descending, the first line of the group is the last(newest) backup file.
-		n1, n2 := groupFunc(finf.Name(), suffixes)
+	copiesToKeep := keepLastNcopies
+	n1, n2 := groupFunc(slice[0].Name(), possiblesuffixes)
+	// prepend 'uniquenness' to the first line to make it the beginning of a new group of filenames
+	prevGroup := n1 + n2 + "notequal"
+	// collect the newest files names exploiting slice sorting order
+	// the slice is sorted descending, so the first line of the group is the last(newest) backup file.
+	for _, finf := range slice {
+		n1, n2 := groupFunc(finf.Name(), possiblesuffixes)
 		curGroup := n1 + n2
-		if curGroup != prevGroup { // start of a group
+		if curGroup != prevGroup { // this element is a start of a new group of filenames
 			ret = append(ret, finf)
 			prevGroup = curGroup
+			copiesToKeep = keepLastNcopies
+			copiesToKeep--
+
+			continue
+
+		}
+		if copiesToKeep > 0 {
+			ret = append(ret, finf)
+			copiesToKeep--
 		}
 
 	}
 	return ret
 }
 
+// GetFilesNotCoveredByConfigFile returns files not associated with any config line.
+// Config file may not contain any config line for some actual files.
+// We don't delete such files.
+// conf must be sorted ascendingly.
+func GetFilesNotCoveredByConfigFile(filesindir []FileInfoWin, conf []ConfigLine, groupFunc GrouppingFunc, uniquesuffixes []string) []FileInfoWin {
+	ret := make([]FileInfoWin, 0, len(filesindir)/4)
+	for _, filestat := range filesindir {
+		// extract from each file its database name
+		n1, _ := GroupFunc(filestat.Name(), uniquesuffixes)
+		// find database name on config file
+		pos := sort.Search(len(conf), func(i int) bool {
+			if conf[i].Filename >= n1 {
+				return true
+			}
+			return false
+		})
+		if pos >= len(conf) || conf[pos].Filename != n1 {
+			// this database is not in config file
+			ret = append(ret, filestat)
+		}
+	}
+	return ret
+}
+
 // FindConfigLineByFilename returns a Config line by filename.
-// ConfigItems must be ascending sorted.
+// ConfigItems must be in ascending sorted.
+// One may need this for messages in errors.
 func FindConfigLineByFilename(filename string, currentSuffixes []string, ConfigItems []ConfigLine) *ConfigLine {
 	lenconf := len(ConfigItems)
 	dbname, suffix := GroupFunc(filename, currentSuffixes) // gets dbname and suffix from current filename

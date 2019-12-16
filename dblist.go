@@ -1,15 +1,16 @@
 // Package dblist helps to manage databases files names list. Selects last files, extracts group name from filename etc.
-// *****************
-// * outdated version, please use /v2 version. (see subdirectory /v2)
-// *****************
+// ********************************************************************	*
+// * THIS IS an outdated version of package dblist.						*
+// * Please use and import dblist/v2 version. (see subdirectory /v2)	*
+// ********************************************************************	*
 // Reads actual files from specified paths.
 // Selects last files in its group for every database.
 // Supposed to be used by other packages that manage backup files: DeleteArchivedBackups, BackupsControl.
 // Uses config file:
 // Example of config file:
-// [{"path":"g:/ShebB", "Filename":"buh_log8", "Days":1},
-// {"path":"g:/ShebB", "Filename":"buh_log3", "Days":1},
-// {"path":"g:/ShebB", "Filename":"buh_prom8", "Days":1},
+// [{"path":"g:/ShebB", "Filename":"buhl8", "Days":1},
+// {"path":"g:/ShebB", "Filename":"buhl3", "Days":1},
+// {"path":"g:/ShebB", "Filename":"buhpro8", "Days":1},
 // ]
 package dblist
 

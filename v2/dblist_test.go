@@ -136,7 +136,7 @@ func TestGetLastFilesGroupedByFunc(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if gotRet := GetLastFilesGroupedByFunc(tt.args.slice, tt.args.groupFunc, []string{"-FULL.bak", "-differ.dif"}); !reflect.DeepEqual(gotRet, tt.wantRet) {
+			if gotRet := GetLastFilesGroupedByFunc(tt.args.slice, tt.args.groupFunc, []string{"-FULL.bak", "-differ.dif"}, 1); !reflect.DeepEqual(gotRet, tt.wantRet) {
 				t.Errorf("GetLastFilesGroupedByFunc() = %v, want %v", gotRet, tt.wantRet)
 			}
 		})
