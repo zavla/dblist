@@ -1,5 +1,5 @@
-// Package dblist helps to manage groups of databases files names list. Selects last (newest) backup files, extracts group name from filename etc.
-// Selects last files in its group for every database.
+// Package dblist helps to manage groups of databases files names.
+// Selects last (newest) backup files, extracts group name from filename etc.
 // Supposed to be used by other packages that manage backup files: DeleteArchivedBackups, BackupsControl.
 // Module mode. Should be imported with: import 	"github.com/zavla/dblist/v2"
 // Uses config file:
@@ -216,8 +216,8 @@ func ReadFilesFromPaths(uniquefolders map[string]int) map[string][]FileInfoWin {
 // Used in func GetLastFilesGroupedByFunc.
 // Filenames examples:
 // ubd_store_2018-11-12-FULL.bak
-// ubd_sstore_2018-11-13-differ.dif
-// ^---------^          ^----------^
+// ubd_store_2018-11-13-differ.dif
+// ^-------^            ^--------^
 // groupsbythis        and   groupsbythis
 // Filenames devided in groups by databasename and a suffix (ex. -FULL.bak of -differ.bak).
 // Params:
