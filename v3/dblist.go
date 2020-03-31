@@ -12,6 +12,7 @@ package dblist
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -19,13 +20,13 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"errors"
 
 	"golang.org/x/sys/windows"
 )
+
 const constFileNameHasWrongSuffix = "constFileNameHasWrongSuffix"
 
-// usefull patterns 
+// usefull patterns
 const constnumber = "0123456789"
 const constTimeInFilenameFormat = "2006-01-02T15-04-05"
 
@@ -40,6 +41,7 @@ var YYYYminusMMpattern = []string{
 	"0123456789",
 	"0123456789",
 }
+
 // timeInFilenamePattern is used to find time in filename
 var timeInFilenamePattern = []string{
 	"_",
@@ -63,6 +65,7 @@ var timeInFilenamePattern = []string{
 	constnumber,
 	constnumber,
 }
+
 // ExtractTimeFromFilename is used to get time.Time from a string.
 // It finds timeInFilenamePattern in a string and parses it.
 func ExtractTimeFromFilename(s string) (time.Time, error) {
@@ -71,7 +74,7 @@ func ExtractTimeFromFilename(s string) (time.Time, error) {
 	err := errors.New("datetime pattern not found")
 	if ret != -1 {
 		ret++
-		substr := s[ret:(ret-1+len(timeInFilenamePattern))]
+		substr := s[ret:(ret - 1 + len(timeInFilenamePattern))]
 		t, err := time.Parse(constTimeInFilenameFormat, substr)
 		if err == nil {
 			return t, nil
@@ -79,7 +82,6 @@ func ExtractTimeFromFilename(s string) (time.Time, error) {
 	}
 	return time.Time{}, err
 }
-
 
 // ConfigLine represents a line in config file
 type ConfigLine struct {
@@ -252,7 +254,9 @@ func ReadFilesFromPaths(uniquefolders map[string]int) map[string][]FileInfoWin {
 	for k := range uniquefolders {
 		filesinfo, err := ioutil.ReadDir(k)
 		if err != nil {
-			log.Fatalf("%s\n", err)
+			// config file has a reference to non existing directory
+			log.Printf("skipping directory %s, %s\n", k, err)
+			continue
 		}
 
 		retmap[k] = make([]FileInfoWin, 0, len(filesinfo))
