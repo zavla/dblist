@@ -1,9 +1,8 @@
 // Package dblist helps to manage groups of databases files names.
-// Selects last (newest) backup files, extracts group name from filename etc.
+// Selects last (newest) backup files over a group of file names.
 // Supposed to be used by other packages that manage backup files: DeleteArchivedBackups, BackupsControl.
-// Module mode. Should be imported with: import 	"github.com/zavla/dblist/v2"
-// Uses config file:
-// Example of config file:
+// Should be imported with: import 	"github.com/zavla/dblist/v3"
+// Example of config json file:
 // [{"path":"g:/ShebB", "Filename":"buh_log8", "Days":1},
 // {"path":"g:/ShebB", "Filename":"buh_log3", "Days":1},
 // {"path":"g:/ShebB", "Filename":"buh_prom8", "Days":1},
@@ -24,7 +23,8 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-const constFileNameHasWrongSuffix = "constFileNameHasWrongSuffix"
+// indication of a file name not covered by config json file
+const constFileNameHasWrongSuffix = ""
 
 // usefull patterns
 const constnumber = "0123456789"
@@ -67,7 +67,7 @@ var timeInFilenamePattern = []string{
 }
 
 // ExtractTimeFromFilename is used to get time.Time from a string.
-// It finds timeInFilenamePattern in a string and parses it.
+// It finds the pattern timeInFilenamePattern in a string and parses it.
 func ExtractTimeFromFilename(s string) (time.Time, error) {
 
 	ret := Findpattern(s, timeInFilenamePattern)
@@ -93,18 +93,19 @@ type ConfigLine struct {
 	HasAnyFiles bool // indicating there were some files to choose from
 }
 
-// FileInfoWin is a struct to hold os.FileInfo and additional windows attributes that we use (we need archived attribute)
+// FileInfoWin is a struct to hold os.FileInfo and additional windows attributes that we use.
+// We use A attribute of a file.
 type FileInfoWin struct {
 	os.FileInfo
 	WinAttr uint32
 }
 
-// GrouppingFunc is a type of function that extracts database name from filename.
-// map[string][]string is used to hold filename map to []of suffixes.
+// GrouppingFunc is a function type that extracts database name from filename.
+// map[string][]string is used to hold a map of database names to slice of possible files suffixes.
 type GrouppingFunc func(string, map[string][]string) (string, string)
 
 // ReadConfig reads json config file.
-// ReadConfig doesn't sort config lines. User expected to sort line by himself.
+// ReadConfig doesn't sort config lines. User expected to sort the returned slice by himself.
 func ReadConfig(filename string) (datastruct []ConfigLine, err error) {
 
 	f, err := os.Open(filename)
@@ -140,7 +141,8 @@ func GetUniquePaths(configstruct []ConfigLine) map[string]int {
 	return retmap
 }
 
-// GetMapFilenameToSuffixes gets map of dbname to all its suffixes
+// GetMapFilenameToSuffixes gets a map of database names to all its possible suffixes
+// according to a config json file.
 func GetMapFilenameToSuffixes(configlines []ConfigLine) map[string][]string {
 	retmap := make(map[string][]string)
 	for _, v := range configlines {
@@ -155,10 +157,9 @@ func GetMapFilenameToSuffixes(configlines []ConfigLine) map[string][]string {
 	return retmap
 }
 
-// ExtractDBName gets database name from filename.
-// All filenames are in possible 3 forms:
-// dbnamehere_YYYY-MM-DDThh-mm-ss-nnn-FULL.bak
-// dbnamehere_YYYY-MM-DDThh-mm-ss-nnn-differ.dif
+// ExtractDBName gets database name from the begining of a filename.
+// You must clear s from path part by yourself.
+// All filenames use this template:
 // dbnamehere_YYYY-MM-DDThh-mm-ss-nnn-somesuffix
 func ExtractDBName(s string) string {
 
@@ -167,6 +168,14 @@ func ExtractDBName(s string) string {
 		return ""
 	}
 	return string(s[:pos])
+}
+
+func ExtractDateTime(s string) string {
+	pos := Findpattern(s, timeInFilenamePattern)
+	if pos == -1 {
+		return ""
+	}
+	return string(s[(pos + 1):(pos + len(timeInFilenamePattern))])
 }
 
 // BytesInRunes counts bytes in several runes in a utf8 string.
@@ -200,10 +209,10 @@ func BytesInRunes(s string, countrunes int) int {
 }
 
 // Findpattern finds simple patterns in utf8 string.
-// Ror example _YYYY-MM pattern.
-// Returns index of the first _byte_ of string.
+// For example _YYYY-MM pattern.
+// Returns index of the first _byte_ of string that match the pattern.
 // Does not convert to []rune.
-// example of _YYYY-MM pattern := []string{
+// Example of _YYYY-MM pattern := []string{
 //	"_",
 // 	"0123456789",
 // 	"0123456789",
@@ -215,7 +224,7 @@ func BytesInRunes(s string, countrunes int) int {
 // }
 func Findpattern(s string, pattern []string) (ret int) {
 	ret = -1
-	//lpattern := len(pattern)
+
 	pos := strings.IndexAny(s, pattern[0]) // finds first char of pattern
 	if pos != -1 {
 	nextposiblepos:
@@ -226,7 +235,7 @@ func Findpattern(s string, pattern []string) (ret int) {
 			for _, v := range pattern {
 				thisrunebytes := BytesInRunes(s[pos+skipbytes:], 1) // how many bytes in this one rune
 
-				if strings.IndexAny(s[pos+skipbytes:pos+skipbytes+thisrunebytes], v) == -1 {
+				if !strings.ContainsAny(s[pos+skipbytes:pos+skipbytes+thisrunebytes], v) {
 					// found wrong start of pattern
 					newpos := strings.IndexAny(s[pos+firstrunebytes:], pattern[0]) // again finds first char of pattern
 					if newpos != -1 {
@@ -245,9 +254,9 @@ func Findpattern(s string, pattern []string) (ret int) {
 }
 
 // ReadFilesFromPaths reads actual files, fills map with files in specified folders.
-// Filenames should be in form: databasename_YYYY-MM-DD-*
+// Filenames should be in form: dbnamehere_YYYY-MM-DDThh-mm-ss-nnn-somesuffix
 // Other files considered not a database backups and will not be appended.
-// Also reads Windows file attributes.
+// Also reads Windows files attributes.
 func ReadFilesFromPaths(uniquefolders map[string]int) map[string][]FileInfoWin {
 
 	retmap := make(map[string][]FileInfoWin)
@@ -266,10 +275,11 @@ func ReadFilesFromPaths(uniquefolders map[string]int) map[string][]FileInfoWin {
 			}
 			// adds windows attributes to instance of special type FileInfoWin
 			fullFilename := filepath.Join(k, v.Name())
-			uint16ptr, _ := windows.UTF16PtrFromString(fullFilename)
-			WinAttr, err := windows.GetFileAttributes(uint16ptr)
-			if err != nil {
-				log.Fatalf("%s\n", err)
+			uint16ptr, err1 := windows.UTF16PtrFromString(fullFilename)
+			WinAttr, err2 := windows.GetFileAttributes(uint16ptr)
+			if err1 != nil || err2 != nil {
+				log.Printf("%s\n", err)
+				continue
 			}
 
 			retmap[k] = append(retmap[k], FileInfoWin{FileInfo: v, WinAttr: WinAttr})
@@ -278,17 +288,17 @@ func ReadFilesFromPaths(uniquefolders map[string]int) map[string][]FileInfoWin {
 	return retmap // map of slices of fileinfos
 }
 
-// GroupFunc extracts grouping columns from filename.
+// GroupFunc is a function that extracts grouping info from filename.
 // Used in func GetLastFilesGroupedByFunc.
 // Filenames examples:
-// ubd_store_2018-11-12-FULL.bak
-// ubd_store_2018-11-13-differ.dif
-// ^-------^            ^--------^
-// groupsbythis        and   groupsbythis
-// Filenames devided in groups by databasename and a suffix (ex. -FULL.bak of -differ.bak).
+// ex. 	dbname_2021-08-10T10-04-00-717-differ.rar
+// 		dbname_2021-08-10T11-05-00-001-differ.rar
+//      ^----^                         ^--------^
+//      groupsbythis                   and this
+// Filenames devidded in groups by database name and a suffix of a file. (ex. -FULL.bak of -differ.bak).
 // Params:
 // source is a filename;
-// nameTosuffixes is a map of filenames to slice of possible filename endings;
+// nameTosuffixes is a map of database names to slice of possible filename endings;
 // Returns: extracted dbname and suffix.
 func GroupFunc(source string, nameTosuffixes map[string][]string) (groupname, groupsuffix string) {
 
@@ -312,48 +322,70 @@ func GroupFunc(source string, nameTosuffixes map[string][]string) (groupname, gr
 	return groupname, source[pos:] // dbname and suffix
 }
 
-// GetLastFilesGroupedByFunc selects the last (newest) backup file in a file group.
-// User supplied groupFunc must decide to what group a filename belongs.
-// One may use convenience func GroupFunc in this package to cope with database backup files.
-func GetLastFilesGroupedByFunc(slice []FileInfoWin, groupFunc GrouppingFunc, nameTosuffixes map[string][]string, keepLastNcopies uint) (ret []FileInfoWin) {
+// GetLastFilesGroupedByFunc GetLastFilesCoveredByConfig selects the last (newest) backup file over (or in) a file group.
+// User supplied getGroup must decide to what group a filename belongs.
+// files must contain base name only - that is no path.
+// There is a convenience func GroupFunc in this package to cope with database backup file names.
+// Names example:
+// ex. 	dbname_2021-08-10T10-04-00-717-differ.rar
+// 		dbname_2021-08-10T11-05-00-001-differ.rar
+func GetLastFilesGroupedByFunc(files []FileInfoWin, getGroup GrouppingFunc, nameTosuffixes map[string][]string, keepLastNcopies uint) (ret []FileInfoWin) {
 	ret = []FileInfoWin{}
-	if len(slice) == 0 {
+	if len(files) == 0 {
 		return ret // empty return
 	}
 
-	// one sort with special less func. Sorts filenames descending. Helps to select the newest filename.
-	sort.Slice(slice, func(i, j int) bool {
+	// A sort with special less func.
+	// Sorts filenames descending over a file group. Helps to select the latest filename in a file group.
+	sort.Slice(files, func(i, j int) bool {
 		// sorts descending, so the first line in the group is the oldest file
-		n1, n2 := groupFunc(slice[i].Name(), nameTosuffixes)
-		n3, n4 := groupFunc(slice[j].Name(), nameTosuffixes)
-		if n1+n2 > n3+n4 { //DESCending by group
+		n1, n2 := getGroup(files[i].Name(), nameTosuffixes)
+		n3, n4 := getGroup(files[j].Name(), nameTosuffixes)
+		if n1 > n3 { //DESCending by group
 			return true
 		}
-		if n3+n4 > n1+n2 { //DESCending by group
+		if n3 > n1 {
 			return false
 		}
-		// if filenames are the same group, then date matters.
-		if slice[i].Name() > slice[j].Name() { //DESC inside group
+		if n2 > n4 {
+			return true
+		}
+		if n4 > n2 {
+			return false
+		}
+
+		// here we are when n1==n3 && n2==n4
+
+		// this means names are in the same group, only then file date matters.
+		// ex. 	dbname_2021-08-10T10-04-00-717-differ.rar
+		// 		dbname_2021-08-10T11-05-00-001-differ.rar
+		t1 := ExtractDateTime(files[i].Name())
+		t2 := ExtractDateTime(files[j].Name())
+		if t1 != "" && t2 != "" && t1 > t2 { //DESC by time inside _this_ group of files.
+			return true
+		}
+		if files[i].Name() > files[j].Name() {
 			return true
 		}
 		return false
 	})
 
 	copiesToKeep := keepLastNcopies
-	n1, n2 := groupFunc(slice[0].Name(), nameTosuffixes)
-	// prepend 'uniquenness' to the first line to make it the beginning of a new group of filenames
+	n1, n2 := getGroup(files[0].Name(), nameTosuffixes)
+
+	// Prepend 'uniqueness' to the first line to make it the beginning of a new group of filenames.
 	prevGroup := n1 + n2 + "notequal"
-	// collect the newest files names exploiting slice sorting order
-	// the slice is sorted descending, so the first line of the group is the last(newest) backup file.
-	for _, finf := range slice {
-		n1, n2 := groupFunc(finf.Name(), nameTosuffixes)
+	// Collect the newest files names exploiting slice sorting order.
+	// The slice is sorted descending, so the first line of every group is the last(newest) backup file.
+	for _, finf := range files {
+		n1, n2 = getGroup(finf.Name(), nameTosuffixes)
 		curGroup := n1 + n2
-		if n2 == constFileNameHasWrongSuffix {
-			// current file has the dbname but has wrong suffix and will not take part in decision
+		if n1 == constFileNameHasWrongSuffix || n2 == constFileNameHasWrongSuffix {
+			// current file has the dbname in it but has wrong suffix - do not consider this file as it is not in config json file.
 			continue
 		}
 		if curGroup != prevGroup { // this element is a start of a new group of filenames
-			ret = append(ret, finf)
+			ret = append(ret, finf) // finf is the latest file
 			prevGroup = curGroup
 			copiesToKeep = keepLastNcopies
 			copiesToKeep--
@@ -372,14 +404,20 @@ func GetLastFilesGroupedByFunc(slice []FileInfoWin, groupFunc GrouppingFunc, nam
 
 // GetFilesNotCoveredByConfigFile returns files not associated with any config line.
 // Config file may not contain any config line for some actual files.
-// We don't delete such files.
-// conf must be sorted ascendingly.
-func GetFilesNotCoveredByConfigFile(filesindir []FileInfoWin, conf []ConfigLine, groupFunc GrouppingFunc, nameTosuffixes map[string][]string) []FileInfoWin {
+// Use it to select files not coverred by config json file - you don't want to delete such files.
+// conf config slice must be previously sorted ascending by user.
+func GetFilesNotCoveredByConfigFile(filesindir []FileInfoWin, conf []ConfigLine, getGroup GrouppingFunc, nameTosuffixes map[string][]string) []FileInfoWin {
 	ret := make([]FileInfoWin, 0, len(filesindir)/4)
 	for _, filestat := range filesindir {
 		// extract from each file its database name
-		n1, _ := GroupFunc(filestat.Name(), nameTosuffixes)
-		// find database name on config file
+		n1, n2 := getGroup(filestat.Name(), nameTosuffixes)
+
+		// check if the file suffix is in config file for this database
+		if n2 == constFileNameHasWrongSuffix {
+			ret = append(ret, filestat) // a file not in config json file due to a wrong suffix
+			continue
+		}
+		// try to find database name in config file
 		pos := sort.Search(len(conf), func(i int) bool {
 			if conf[i].Filename >= n1 {
 				return true
@@ -394,8 +432,8 @@ func GetFilesNotCoveredByConfigFile(filesindir []FileInfoWin, conf []ConfigLine,
 	return ret
 }
 
-// FindConfigLineByFilename returns a Config line by filename.
-// ConfigItems must be in ascending sorted.
+// FindConfigLineByFilename finds a Config line that correcponds to a filename.
+// ConfigItems must be in ascending order.
 // One may need this for messages in errors.
 func FindConfigLineByFilename(filename string, nameTosuffixes map[string][]string, ConfigItems []ConfigLine) *ConfigLine {
 	lenconf := len(ConfigItems)
@@ -405,12 +443,13 @@ func FindConfigLineByFilename(filename string, nameTosuffixes map[string][]strin
 		return nil
 	}
 	pos := sort.Search(lenconf, func(i int) bool {
+		// file name greater or if it's equal the suffix is greater or equal
 		return ConfigItems[i].Filename > dbname ||
 			ConfigItems[i].Filename == dbname && ConfigItems[i].Suffix >= suffix
 	})
 	if !(pos < lenconf &&
 		ConfigItems[pos].Filename == dbname && ConfigItems[pos].Suffix == suffix) {
-		return nil
+		return nil // filename doesn't map to config at all
 	}
 	return &ConfigItems[pos]
 }

@@ -33,6 +33,17 @@ func (s SubstFI) Sys() interface{} {
 	return 0
 }
 
+func files(name ...string) (ret []FileInfoWin) {
+	for _, v := range name {
+		ret = append(ret,
+			FileInfoWin{
+				FileInfo: SubstFI{mName: v},
+				WinAttr:  0x20,
+			})
+	}
+	return ret
+}
+
 func TestGetLastFilesGroupedByFunc(t *testing.T) {
 	type args struct {
 		slice     []FileInfoWin
@@ -44,102 +55,137 @@ func TestGetLastFilesGroupedByFunc(t *testing.T) {
 		wantRet []FileInfoWin
 	}{
 		//TODO: Add test cases.
-
+		{
+			name: "empty",
+			args: args{
+				slice: files(),
+			},
+			wantRet: []FileInfoWin{},
+		},
+		{
+			name: "with path",
+			args: args{
+				slice: files(
+					"зп_в_камин_2021-08-05T15-04-01-063-differ.rar",
+					"зп_в_камин_2021-08-05T10-04-00-750-differ.rar",
+					"зп_в_камин_2021-08-01T17-47-03-337-FULL.rar",
+					"зп_в_камин_2021-08-06T17-47-01-147-FULL.rar",
+				),
+			},
+			wantRet: files(
+				"зп_в_камин_2021-08-05T15-04-01-063-differ.rar",
+				"зп_в_камин_2021-08-06T17-47-01-147-FULL.rar",
+			),
+		},
+		{
+			name: "зп_в_камин",
+			args: args{
+				slice: files(
+					"зп_в_камин_2021-08-10T10-04-00-717-differ.rar",
+					"зп_в_камин_2021-08-09T15-04-01-063-differ.rar",
+					"зп_в_камин_2021-08-09T10-04-00-750-differ.rar",
+					"зп_в_камин_2021-08-06T17-47-01-147-FULL.rar",
+					"зп_в_камин_2021-08-01T17-47-03-337-FULL.rar",
+				),
+			},
+			wantRet: files(
+				"зп_в_камин_2021-08-10T10-04-00-717-differ.rar",
+				"зп_в_камин_2021-08-06T17-47-01-147-FULL.rar",
+			),
+		},
 		{name: "one",
 			args: args{
-				slice: []FileInfoWin{
-					{FileInfo: SubstFI{"ubd_store_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
-				},
-				groupFunc: GroupFunc,
+				slice: files("ubd_store_2010_2018-11-11-FULL.bak"),
 			},
-			wantRet: []FileInfoWin{
-				{FileInfo: SubstFI{"ubd_store_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
-			},
+			wantRet: files("ubd_store_2010_2018-11-11-FULL.bak"),
 		},
 		{name: "two",
 			args: args{
-				slice: []FileInfoWin{
-					{FileInfo: SubstFI{"A_logfile.txt"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ubd_store_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
-				},
-				groupFunc: GroupFunc,
+				slice: files(
+					"A_logfile.txt",
+					"ubd_store_2010_2018-11-11-FULL.bak",
+				),
 			},
-			wantRet: []FileInfoWin{
-				{FileInfo: SubstFI{"ubd_store_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
-			},
+			wantRet: files("ubd_store_2010_2018-11-11-FULL.bak"),
 		},
 		{name: "three",
 			args: args{
-				slice: []FileInfoWin{
-					{FileInfo: SubstFI{"A_logfile.txt"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ubd_store_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ubd_store_2010_2018-11-12-FULL.bak"}, WinAttr: 0x20},
-				},
-				groupFunc: GroupFunc,
+				slice: files(
+					"A_logfile.txt",
+					"ubd_store_2010_2018-11-11-FULL.bak",
+					"ubd_store_2010_2018-11-12-FULL.bak",
+				),
 			},
-			wantRet: []FileInfoWin{
-				{FileInfo: SubstFI{"ubd_store_2010_2018-11-12-FULL.bak"}, WinAttr: 0x20},
-			},
+			wantRet: files("ubd_store_2010_2018-11-12-FULL.bak"),
 		},
 		{name: "four",
 			args: args{
-				slice: []FileInfoWin{
-					{FileInfo: SubstFI{"A_logfile.txt"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ubd_store_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ubd_store_2010_2018-11-12-FULL.bak"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ubd_store_2010_2018-11-10-differ.dif"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ubd_store_2010_2018-11-13-differ.dif"}, WinAttr: 0x20},
-				},
-				groupFunc: GroupFunc,
+				slice: files(
+					"A_logfile.txt",
+					"ubd_store_2010_2018-11-11-FULL.bak",
+					"ubd_store_2010_2018-11-12-FULL.bak",
+					"ubd_store_2010_2018-11-10-differ.dif",
+					"ubd_store_2010_2018-11-13-differ.dif",
+				),
 			},
-			wantRet: []FileInfoWin{
-				{FileInfo: SubstFI{"ubd_store_2010_2018-11-13-differ.dif"}, WinAttr: 0x20},
-				{FileInfo: SubstFI{"ubd_store_2010_2018-11-12-FULL.bak"}, WinAttr: 0x20},
-			},
+			wantRet: files(
+				"ubd_store_2010_2018-11-13-differ.dif",
+				"ubd_store_2010_2018-11-12-FULL.bak",
+			),
 		},
 		{name: "five",
 			args: args{
-				slice: []FileInfoWin{
-					{FileInfo: SubstFI{"A_logfile.txt"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ubd_store_2010_2018-11-11-FULL.bak"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ubd_store_2010_2018-11-12-FULL.bak"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ubd_store_2010_2018-11-10-differ.dif"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ubd_store_2010_2018-11-13-differ.dif"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ПАО_ПРОМ_2018-12-18T09-00-30-380-FULL.bak"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ПАО_ПРОМ_2018-12-25T09-00-27-477-FULL.bak"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ПАО_ПРОМ-1c77dir_2018-10-12T16-18-00.7z"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ПАО_ПРОМ-1c77dir_2018-10-16T21-00-00.7z"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ПАО_ПРОМ-1c77dir_2018-10-23T21-00-01.7z"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ПАО_ПРОМ-1c77dir_2018-10-30T21-00-00.7z"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ПАО_ПРОМ-1c77dir_2018-11-06T21-00-00.7z"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ПАО_ПРОМ-1c77dir_2018-11-13T21-00-00.7z"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ПАО_ПРОМ-1c77dir_2018-11-20T21-00-01.7z"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ПАО_ПРОМ-1c77dir_2018-11-27T21-00-00.7z"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ПАО_ПРОМ-1c77dir_2018-12-04T21-00-02.7z"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ПАО_ПРОМ-1c77dir_2018-12-11T21-00-02.7z"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ПАО_ПРОМ-1c77dir_2018-12-18T21-00-02.7z"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ПАО_ПРОМ-1c77dir_2018-12-25T21-00-01.7z"}, WinAttr: 0x20},
-					{FileInfo: SubstFI{"ПАО_ПРОМ-1c77dir_2018-12-26T21-00-01-FULL.bak"}, WinAttr: 0x20},
-				},
-				groupFunc: GroupFunc,
+				slice: files(
+					"A_logfile.txt",
+					"ubd_store_2010_2018-11-11-FULL.bak",
+					"ubd_store_2010_2018-11-12-FULL.bak",
+					"ubd_store_2010_2018-11-10-differ.dif",
+					"ubd_store_2010_2018-11-13-differ.dif",
+					"ПАО_ПРОМ_2018-12-18T09-00-30-380-FULL.bak",
+					"ПАО_ПРОМ_2018-12-25T09-00-27-477-FULL.bak",
+					"ПАО_ПРОМ-1c77dir_2018-10-12T16-18-00.7z",
+					"ПАО_ПРОМ-1c77dir_2018-10-16T21-00-00.7z",
+					"ПАО_ПРОМ-1c77dir_2018-10-23T21-00-01.7z",
+					"ПАО_ПРОМ-1c77dir_2018-10-30T21-00-00.7z",
+					"ПАО_ПРОМ-1c77dir_2018-11-06T21-00-00.7z",
+					"ПАО_ПРОМ-1c77dir_2018-11-13T21-00-00.7z",
+					"ПАО_ПРОМ-1c77dir_2018-11-20T21-00-01.7z",
+					"ПАО_ПРОМ-1c77dir_2018-11-27T21-00-00.7z",
+					"ПАО_ПРОМ-1c77dir_2018-12-04T21-00-02.7z",
+					"ПАО_ПРОМ-1c77dir_2018-12-11T21-00-02.7z",
+					"ПАО_ПРОМ-1c77dir_2018-12-18T21-00-02.7z",
+					"ПАО_ПРОМ-1c77dir_2018-12-25T21-00-01.7z",
+					"ПАО_ПРОМ-1c77dir_2018-12-26T21-00-01-FULL.bak",
+				),
 			},
-			wantRet: []FileInfoWin{
-				{FileInfo: SubstFI{"ПАО_ПРОМ_2018-12-25T09-00-27-477-FULL.bak"}, WinAttr: 0x20},
-				{FileInfo: SubstFI{"ПАО_ПРОМ-1c77dir_2018-12-25T21-00-01.7z"}, WinAttr: 0x20},
-				{FileInfo: SubstFI{"ubd_store_2010_2018-11-13-differ.dif"}, WinAttr: 0x20},
-				{FileInfo: SubstFI{"ubd_store_2010_2018-11-12-FULL.bak"}, WinAttr: 0x20},
-			},
+			wantRet: files(
+				"ПАО_ПРОМ-1c77dir_2018-12-25T21-00-01.7z",
+				"ПАО_ПРОМ_2018-12-25T09-00-27-477-FULL.bak",
+				"ubd_store_2010_2018-11-13-differ.dif",
+				"ubd_store_2010_2018-11-12-FULL.bak",
+			),
 		},
 	}
-	nameTosuffixes := make(map[string][]string, 0)
+
+	// set default group function
+	for i := range tests {
+		if tests[i].args.groupFunc == nil {
+			tests[i].args.groupFunc = GroupFunc
+		}
+	}
+
+	nameTosuffixes := make(map[string][]string)
 	nameTosuffixes["ПАО_ПРОМ"] = []string{"-FULL.bak", "-differ.dif"}
 	nameTosuffixes["ПАО_ПРОМ-1c77dir"] = []string{".7z"}
 	nameTosuffixes["ubd_store_2010"] = []string{"-FULL.bak", "-differ.dif"}
+	nameTosuffixes["зп_в_камин"] = []string{"-FULL.rar", "-differ.rar"}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if gotRet := GetLastFilesGroupedByFunc(tt.args.slice, tt.args.groupFunc, nameTosuffixes, 1); !reflect.DeepEqual(gotRet, tt.wantRet) {
-				t.Errorf("GetLastFilesGroupedByFunc()\n got = %v,\n want= %v", gotRet, tt.wantRet)
+				t.Errorf(`GetLastFilesGroupedByFunc(), testname "%v"
+				 got = %v,
+				 want= %v`, tt.name, gotRet, tt.wantRet)
 			}
 		})
 	}
@@ -246,7 +292,7 @@ func TestExtractTimeFromFilename(t *testing.T) {
 		{
 			"name1",
 			args{
-			"OOO_UdC_Eng_2018-08-22T10-30-00-683-differ.dif",
+				"OOO_UdC_Eng_2018-08-22T10-30-00-683-differ.dif",
 			},
 			mustparse("2018-08-22T10-30-00"),
 			false,
@@ -259,7 +305,6 @@ func TestExtractTimeFromFilename(t *testing.T) {
 			mustparse("2018-08-17T19-00-00"),
 			false,
 		},
-
 	}
 
 	for _, tt := range tests {
@@ -274,13 +319,36 @@ func TestExtractTimeFromFilename(t *testing.T) {
 			}
 		})
 	}
-}	
+}
 
-	func mustparse(s string) time.Time {
-		t, err := time.Parse(constTimeInFilenameFormat, s)
-		if err != nil {
-			panic(s)
-		}
-		return t
+func mustparse(s string) time.Time {
+	t, err := time.Parse(constTimeInFilenameFormat, s)
+	if err != nil {
+		panic(s)
 	}
-	
+	return t
+}
+
+func TestExtractDateTime(t *testing.T) {
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		// TODO: Add test cases.
+		{"date in path",
+			args{"f:/testdata/_2019-08-07/зп_в_камин_2021-08-06T17-47-01-147-FULL.rar"},
+			"2021-08-06T17-47-01",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ExtractDateTime(tt.args.s); got != tt.want {
+				t.Errorf("ExtractDateTime() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
