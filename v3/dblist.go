@@ -12,6 +12,7 @@ package dblist
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -110,12 +111,12 @@ func ReadConfig(filename string) (datastruct []ConfigLine, err error) {
 
 	f, err := os.Open(filename)
 	if err != nil {
-		log.Fatalf("%s\n", err)
+
 		return
 	}
 	b, err := ioutil.ReadAll(f)
 	if err != nil {
-		log.Fatalf("%s\n", err)
+
 		return
 	}
 	if b[0] == 0xEF || b[0] == 0xBB || b[1] == 0xBB {
@@ -124,8 +125,8 @@ func ReadConfig(filename string) (datastruct []ConfigLine, err error) {
 
 	err = json.Unmarshal(b, &datastruct)
 	if err != nil {
-		log.Fatalf("json structure is wrong:\n%s\n", err)
-		return
+		err = fmt.Errorf("Config has bad json structure: %w", err)
+		return datastruct, err
 	}
 	return datastruct, nil
 }
