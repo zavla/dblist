@@ -260,7 +260,7 @@ func BenchmarkSlice(b *testing.B) {
 	for bc := 0; bc <= b.N; bc++ {
 		for i := 0; i < len(str)-4; i++ {
 			new := str[i:]
-			new = new[0:1]
+			_ = new[0:1]
 		}
 	}
 }
@@ -270,7 +270,7 @@ func BenchmarkSlice4bytes(b *testing.B) {
 	for bc := 0; bc <= b.N; bc++ {
 		for i := 0; i < len(str)-4; i++ {
 			new := str[i : i+4]
-			new = new[0:1]
+			_ = new[0:1]
 		}
 	}
 

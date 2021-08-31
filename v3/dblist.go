@@ -14,14 +14,10 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
-
-	"golang.org/x/sys/windows"
 )
 
 // indication of a file name not covered by config json file
@@ -125,7 +121,7 @@ func ReadConfig(filename string) (datastruct []ConfigLine, err error) {
 
 	err = json.Unmarshal(b, &datastruct)
 	if err != nil {
-		err = fmt.Errorf("Config has bad json structure: %w", err)
+		err = fmt.Errorf("config has bad json structure: %w", err)
 		return datastruct, err
 	}
 	return datastruct, nil
@@ -252,41 +248,6 @@ func Findpattern(s string, pattern []string) (ret int) {
 		}
 	}
 	return
-}
-
-// ReadFilesFromPaths reads actual files, fills map with files in specified folders.
-// Filenames should be in form: dbnamehere_YYYY-MM-DDThh-mm-ss-nnn-somesuffix
-// Other files considered not a database backups and will not be appended.
-// Also reads Windows files attributes.
-func ReadFilesFromPaths(uniquefolders map[string]int) map[string][]FileInfoWin {
-
-	retmap := make(map[string][]FileInfoWin)
-	for k := range uniquefolders {
-		filesinfo, err := ioutil.ReadDir(k)
-		if err != nil {
-			// config file has a reference to non existing directory
-			log.Printf("skipping directory %s, %s\n", k, err)
-			continue
-		}
-
-		retmap[k] = make([]FileInfoWin, 0, len(filesinfo))
-		for _, v := range filesinfo {
-			if ExtractDBName(v.Name()) == "" {
-				continue // file name is not a DB backup file
-			}
-			// adds windows attributes to instance of special type FileInfoWin
-			fullFilename := filepath.Join(k, v.Name())
-			uint16ptr, err1 := windows.UTF16PtrFromString(fullFilename)
-			WinAttr, err2 := windows.GetFileAttributes(uint16ptr)
-			if err1 != nil || err2 != nil {
-				log.Printf("%s\n", err)
-				continue
-			}
-
-			retmap[k] = append(retmap[k], FileInfoWin{FileInfo: v, WinAttr: WinAttr})
-		}
-	}
-	return retmap // map of slices of fileinfos
 }
 
 // GroupFunc is a function that extracts grouping info from filename.
@@ -420,10 +381,7 @@ func GetFilesNotCoveredByConfigFile(filesindir []FileInfoWin, conf []ConfigLine,
 		}
 		// try to find database name in config file
 		pos := sort.Search(len(conf), func(i int) bool {
-			if conf[i].Filename >= n1 {
-				return true
-			}
-			return false
+			return conf[i].Filename >= n1
 		})
 		if pos >= len(conf) || conf[pos].Filename != n1 {
 			// this database is not in config file
